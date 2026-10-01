@@ -1,0 +1,12 @@
+schema_version = 1
+
+[server]
+id = "example-public-mcp"
+title = "Example Public MCP"
+instructions = "Read-only example metadata; no network, file resources, writes, or execution."
+
+[[resource]]
+id = "example-service"
+title = "Example Service"
+summary = "Public metadata used to demonstrate a service-owned MCP projection."
+capabilities = ["read-public-summary", "list-public-capabilities"]
