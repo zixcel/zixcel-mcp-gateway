@@ -70,3 +70,26 @@ Each service-owned MCP repository should:
 The local workspace may use a versioned path dependency while repositories are
 being separated. A remote release should resolve the same declared version from
 the approved package source.
+
+## Declared method contract and verification scope
+
+The server declares protocol version `2025-06-18`. This follow-up candidate
+checks required initialize fields, client identity/capability object types,
+object `_meta` on implemented methods, and the tools' declared object arguments.
+Metadata is opaque and does not alter the catalog or its disclosure boundary.
+The reserved request `_meta.progressToken` is a string or JSON number, including
+fractional values. Other metadata keys and notification metadata stay opaque.
+No progress reporting feature is added by this input-type validation.
+An unissued pagination cursor remains invalid; this bounded catalog does not
+issue `nextCursor` values or introduce pagination state.
+
+The stateless gateway does not enforce a connection phase machine. Compliant
+clients must initialize first, send `notifications/initialized`, and respect the
+selected version. A different client version may receive the supported
+`2025-06-18` fallback. Missing initialize fields and mistyped inputs are rejected;
+this is distinct from implementing new optional client/server features.
+
+Record compilation and full regression review against the exact source tree.
+Tests for earlier candidate bytes are not a verification of this change.
+HTTP authentication, deployment, sampling, prompts, logging and subscriptions
+are outside the implemented surface; no full MCP conformance claim is made.

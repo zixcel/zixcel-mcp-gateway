@@ -1,15 +1,18 @@
 [package]
-exclude = ["*.tgz", "**/*.tgz", "/registration/**", "/state/**", "/.local/**", "/.state/**", "/.data/**", "/secrets/**", "/credentials/**", "/.env", "/.env.production", "/.env.local", "/*.tgz", "/*.tar.gz", "/*.tar", "/*.zip", "/*.whl", "/*.crate", "/.ruff_cache/**", "/.mypy_cache/**", "/.tox/**", "/.nox/**", "/.hypothesis/**", "/.coverage", "/.coverage.*", "/htmlcov/**", "/lcov.info", "/junit.xml", "/*.profraw", "/*.profdata", "/*.egg-info/**", "/target/**", "/node_modules/**", "/dist/**", "/build/**", "/.cache/**", "/.pytest_cache/**", "/coverage/**"]
 name = "zixcel-mcp-gateway"
 version = "0.1.0"
 edition = "2024"
 license = "Apache-2.0"
 description = "Product-neutral, read-only stdio MCP runtime for approved public metadata"
-publish = false
+publish = ["crates-io"]
+repository = "https://github.com/zixcel/zixcel-mcp-gateway"
+readme = "README-crate.md"
+include = ["src/**", "tests/**", "examples/local.toml", "schema/public-catalog.schema.json", "docs/rust.md", "README-crate.md", "Cargo.toml", "Cargo.lock", "LICENSE", "LICENSE-MIT", "NOTICE"]
 
 [dependencies]
 serde = { version = "1.0.229", features = ["derive"] }
-serde_json = "1.0.151"
+serde_json = { version = "1.0.151", features = ["raw_value"] }
+bigdecimal = "=0.4.11"
 toml = "0.8.23"
 
 [target.'cfg(unix)'.dependencies]
