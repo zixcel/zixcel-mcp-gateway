@@ -7,7 +7,11 @@ use std::process::Stdio;
 #[test]
 fn stdio_supports_the_minimal_mcp_surface() {
     let requests = [
-        request(1, "initialize", r#"{"protocolVersion":"2025-06-18"}"#),
+        request(
+            1,
+            "initialize",
+            r#"{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"synthetic","version":"1"}}"#,
+        ),
         r#"{"jsonrpc":"2.0","method":"notifications/initialized"}"#.into(),
         request(2, "tools/list", "{}"),
         request(

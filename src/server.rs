@@ -2,9 +2,11 @@
 
 use crate::config::Config;
 use crate::config::PublicResource;
+use crate::protocol::RawField;
 use serde::Deserialize;
 use serde_json::Value;
 use serde_json::json;
+use serde_json::value::RawValue;
 
 type RpcResult = Result<Value, (i32, &'static str)>;
 
@@ -13,7 +15,9 @@ type RpcResult = Result<Value, (i32, &'static str)>;
 struct ToolCall {
     name: String,
     #[serde(default)]
-    arguments: Value,
+    arguments: RawField,
+    #[serde(default)]
+    _meta: RawField,
 }
 
 #[derive(Deserialize)]
@@ -26,10 +30,12 @@ struct ResourceArgument {
 #[serde(deny_unknown_fields)]
 struct ResourceRead {
     uri: String,
+    #[serde(default)]
+    _meta: RawField,
 }
 
-pub fn initialize(config: &Config, params: &Value) -> RpcResult {
-    require_object(params)?;
+pub fn initialize(config: &Config, params: Option<&RawValue>) -> RpcResult {
+    validate_initialize(params)?;
     Ok(json!({
         "protocolVersion":"2025-06-18",
         "capabilities":{"tools":{},"resources":{}},
@@ -42,8 +48,8 @@ pub fn initialize(config: &Config, params: &Value) -> RpcResult {
     }))
 }
 
-pub fn tools_list(params: &Value) -> RpcResult {
-    require_empty(params)?;
+pub fn tools_list(params: Option<&RawValue>) -> RpcResult {
+    require_empty::<EmptyParams>(params)?;
     Ok(json!({"tools":[
         {
             "name":"zixcel_public_catalog",
@@ -63,24 +69,26 @@ pub fn tools_list(params: &Value) -> RpcResult {
     ]}))
 }
 
-pub fn tools_call(config: &Config, params: &Value) -> RpcResult {
+pub fn tools_call(config: &Config, params: Option<&RawValue>) -> RpcResult {
     let call: ToolCall = decode(params)?;
     let value = match call.name.as_str() {
-        "zixcel_public_catalog" if empty_arguments(&call.arguments) => catalog(config),
+        "zixcel_public_catalog" => {
+            require_empty::<EmptyObject>(call.arguments.0.as_deref())?;
+            catalog(config)
+        }
         "zixcel_public_resource" => {
-            let argument: ResourceArgument = decode(&call.arguments)?;
+            let argument: ResourceArgument = decode(call.arguments.0.as_deref())?;
             let resource = find_resource(config, &argument.resource)?;
             serde_json::to_value(resource).map_err(internal)?
         }
-        "zixcel_public_catalog" => return Err((-32602, "Invalid params")),
         _ => return Err((-32602, "Unknown or prohibited tool")),
     };
     let text = serde_json::to_string(&value).map_err(internal)?;
     Ok(json!({"content":[{"type":"text","text":text}],"isError":false}))
 }
 
-pub fn resources_list(config: &Config, params: &Value) -> RpcResult {
-    require_empty(params)?;
+pub fn resources_list(config: &Config, params: Option<&RawValue>) -> RpcResult {
+    require_empty::<EmptyParams>(params)?;
     let resources = config.resources.iter().map(|resource| {
         json!({
             "uri":format!("zixcel://public/{}", resource.id.as_str()),
@@ -92,7 +100,7 @@ pub fn resources_list(config: &Config, params: &Value) -> RpcResult {
     Ok(json!({"resources":resources.collect::<Vec<_>>()}))
 }
 
-pub fn resources_read(config: &Config, params: &Value) -> RpcResult {
+pub fn resources_read(config: &Config, params: Option<&RawValue>) -> RpcResult {
     let read: ResourceRead = decode(params)?;
     let Some(slug) = read.uri.strip_prefix("zixcel://public/") else {
         return Err((-32602, "Only approved zixcel public resources are readable"));
@@ -117,27 +125,103 @@ fn find_resource<'a>(
         .ok_or((-32602, "Unknown or prohibited resource"))
 }
 
-fn decode<T: for<'de> Deserialize<'de>>(value: &Value) -> Result<T, (i32, &'static str)> {
-    serde_json::from_value(value.clone()).map_err(|_| (-32602, "Invalid params"))
+fn decode<T: for<'de> Deserialize<'de>>(raw: Option<&RawValue>) -> Result<T, (i32, &'static str)> {
+    let source = raw
+        .filter(|value| value.get().starts_with('{'))
+        .ok_or((-32602, "Invalid params"))?;
+    serde_json::from_str(source.get()).map_err(|_| (-32602, "Invalid params"))
 }
 
-fn require_object(value: &Value) -> RpcResult {
-    value
-        .as_object()
-        .map(|_| Value::Null)
-        .ok_or((-32602, "Invalid params"))
+#[derive(Deserialize)]
+struct InitializeParams {
+    #[serde(rename = "protocolVersion")]
+    _protocol_version: String,
+    capabilities: Box<RawValue>,
+    #[serde(rename = "clientInfo")]
+    client_info: Box<RawValue>,
 }
 
-fn require_empty(value: &Value) -> RpcResult {
-    if value.is_null() || value.as_object().is_some_and(serde_json::Map::is_empty) {
-        Ok(Value::Null)
-    } else {
-        Err((-32602, "Invalid params"))
+#[derive(Deserialize)]
+struct ClientInfo {
+    #[serde(rename = "name")]
+    _name: String,
+    #[serde(rename = "version")]
+    _version: String,
+    #[serde(default)]
+    title: RawField,
+}
+
+#[derive(Deserialize)]
+struct ClientCapabilities {
+    #[serde(default)]
+    experimental: RawField,
+    #[serde(default)]
+    roots: RawField,
+    #[serde(default)]
+    sampling: RawField,
+    #[serde(default)]
+    elicitation: RawField,
+}
+
+#[derive(Deserialize)]
+struct RootsCapabilities {
+    #[serde(default, rename = "listChanged")]
+    list_changed: RawField,
+}
+
+fn validate_initialize(raw: Option<&RawValue>) -> RpcResult {
+    let request: InitializeParams = decode(raw)?;
+    let client: ClientInfo = decode(Some(&request.client_info))?;
+    if let Some(title) = client.title.0.as_deref() {
+        serde_json::from_str::<String>(title.get()).map_err(|_| (-32602, "Invalid params"))?;
     }
+    let capabilities: ClientCapabilities = decode(Some(&request.capabilities))?;
+    for capability in [
+        &capabilities.experimental,
+        &capabilities.roots,
+        &capabilities.sampling,
+        &capabilities.elicitation,
+    ] {
+        if capability
+            .0
+            .as_deref()
+            .is_some_and(|value| !value.get().starts_with('{'))
+        {
+            return Err((-32602, "Invalid params"));
+        }
+    }
+    if let Some(experimental) = capabilities.experimental.0.as_deref() {
+        let values: std::collections::BTreeMap<String, Box<RawValue>> = decode(Some(experimental))?;
+        if values.values().any(|value| !value.get().starts_with('{')) {
+            return Err((-32602, "Invalid params"));
+        }
+    }
+    if let Some(roots) = capabilities.roots.0.as_deref() {
+        let roots: RootsCapabilities = decode(Some(roots))?;
+        if let Some(changed) = roots.list_changed.0.as_deref() {
+            serde_json::from_str::<bool>(changed.get()).map_err(|_| (-32602, "Invalid params"))?;
+        }
+    }
+    Ok(Value::Null)
 }
 
-fn empty_arguments(value: &Value) -> bool {
-    value.is_null() || value.as_object().is_some_and(serde_json::Map::is_empty)
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct EmptyObject {}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct EmptyParams {
+    #[serde(default)]
+    _meta: RawField,
+}
+
+fn require_empty<T: for<'de> Deserialize<'de>>(raw: Option<&RawValue>) -> RpcResult {
+    if raw.is_none() {
+        return Ok(Value::Null);
+    }
+    let _: T = decode(raw)?;
+    Ok(Value::Null)
 }
 
 fn internal(_: serde_json::Error) -> (i32, &'static str) {
