@@ -11,11 +11,11 @@ Expose reviewed metadata through a validated, bounded MCP interface.
 
 Applications own disclosure policy and resource content. Configuration must be supplied before the gateway is started.
 
-Package distribution is not activated by this documentation. Use the checked-in source and the declared dependency versions; published availability must be verified separately.
+The Rust library is published on crates.io. Standalone source builds use the locked public dependencies; each release records its source SHA and distribution checksum.
 
 ## Getting started
 
-Install the Rust toolchain declared by this repository and make the declared dependencies available. Use the configured private registry when a dependency is not distributed publicly. Run from this repository:
+Install the Rust toolchain declared by this repository. Cargo resolves this package's dependencies through crates.io. Run from this repository:
 
 ```sh
 cargo test --locked
