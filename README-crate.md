@@ -9,8 +9,8 @@ This Rust library and stdio executable project a validated, closed TOML catalog 
 閉じた TOML スキーマを検証し、読み取り専用の MCP インターフェースへ投影します。設定ファイルは 64 KiB、リソースは 64 件、標準入力の各行は 1 MiB までです。対応プロトコルは `2025-06-18` として宣言され、他の版との互換性は未確認です。
 
 ## Usage / 使用方法
-This 0.1.0 publication candidate has not been published. From the distributed source:
-この 0.1.0 候補は未公開です。配布ソースから実行できます。
+Version 0.1.0 is available from crates.io. Run the downloaded source with:
+0.1.0 は crates.io で公開済みです。取得した配布ソースから実行できます。
 
 ```sh
 cargo run --locked -- validate-config --config examples/local.toml
