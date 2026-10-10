@@ -1,0 +1,31 @@
+name: Verify published Rust crate
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.97.1 --profile minimal --component clippy,rustfmt
+      - name: Test and lint all targets
+        run: |
+          cargo +1.97.1 fmt --all --check
+          cargo +1.97.1 test --locked --all-features
+          cargo +1.97.1 clippy --locked --all-targets --all-features -- -D warnings
+      - name: Build the actual crate archive
+        run: cargo +1.97.1 package --locked
+      - name: Retain reviewed crate
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: reviewed-crate
+          path: target/package/zixcel-mcp-gateway-0.1.1.crate
+          if-no-files-found: error
+          retention-days: 7

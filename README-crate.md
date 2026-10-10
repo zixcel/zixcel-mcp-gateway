@@ -7,7 +7,7 @@ Applications need to expose approved public metadata to MCP clients without addi
 This Rust library and stdio executable project a validated, closed TOML catalog through a fixed read-only MCP surface. Configuration files are bounded to 64 KiB, catalogs to 64 resources, and stdio input lines to 1 MiB. The declared protocol version is `2025-06-18`; compatibility with other protocol versions is not established.
 
 ## Usage
-Version 0.1.0 is available from crates.io. Run the downloaded source with:
+Install the library with `cargo add zixcel-mcp-gateway`. Run the downloaded source with:
 
 ```sh
 cargo run --locked -- validate-config --config examples/local.toml
