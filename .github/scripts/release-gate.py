@@ -3,7 +3,7 @@ from pathlib import Path
 
 expected_repo = 'zixcel/zixcel-mcp-gateway'
 expected_name = 'zixcel-mcp-gateway'
-expected_version = '0.1.0'
+expected_version = '0.1.1'
 mode = os.environ['RELEASE_MODE']
 sha = os.environ['GITHUB_SHA']
 assert mode in ('prepare', 'bootstrap', 'oidc')

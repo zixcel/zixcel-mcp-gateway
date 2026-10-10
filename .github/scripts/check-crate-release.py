@@ -3,7 +3,7 @@ import hashlib, json, os, re, sys, tarfile, tomllib
 
 mode, folder = sys.argv[1:]
 directory = Path(folder)
-name, version = 'zixcel-mcp-gateway', '0.1.0'
+name, version = 'zixcel-mcp-gateway', '0.1.1'
 filename = name + '-' + version + '.crate'
 sha = os.environ['GITHUB_SHA']
 assert re.fullmatch(r'[a-f0-9]{40}', sha)
