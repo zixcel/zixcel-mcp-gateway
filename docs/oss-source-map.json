@@ -1,0 +1,244 @@
+{
+  "repository": "zixcel/zixcel-mcp-gateway",
+  "purpose": "Expose reviewed metadata through a validated, bounded MCP interface.",
+  "responsibility_boundary": "Own the named reusable integration/data mechanism. Product roles/UI and operational approvals stay with consumers; transport/custody reuse managed Crowsi components where capabilities fit. Planning-only APIs must remain clearly distinguished from implemented external operations.",
+  "packages": [
+    {
+      "manifest": "Cargo.toml",
+      "package": "zixcel-mcp-gateway",
+      "ecosystem": "rust",
+      "description": "Product-neutral, read-only stdio MCP runtime for approved public metadata",
+      "interfaces": {
+        "lib": "src/lib.rs",
+        "features": {},
+        "bins": [],
+        "public_modules": [],
+        "public_reexports": [
+          "config::Config",
+          "protocol::Gateway",
+          "transport::run_stdio"
+        ],
+        "implicit_bins": []
+      },
+      "declared_commands": {}
+    }
+  ],
+  "schema_definitions": [
+    "schema/public-catalog.schema.json"
+  ],
+  "test_sources": [
+    "src/config.rs",
+    "src/file_input/tests.rs",
+    "src/main.rs",
+    "src/protocol.rs",
+    "src/unit_tests.rs",
+    "tests/declared_method_contract.rs",
+    "tests/duplicate_depth.rs",
+    "tests/jsonrpc_types.rs",
+    "tests/params_contract.rs",
+    "tests/protocol.rs",
+    "tests/raw_decode_boundaries.rs",
+    "tests/security.rs",
+    "tests/support/mod.rs",
+    "tests/validation.rs"
+  ],
+  "example_sources": [
+    "examples/local.toml"
+  ],
+  "workflow_definitions": [
+    {
+      "path": ".github/workflows/oss-policy.yml",
+      "jobs": [
+        {
+          "job": "repository-policy",
+          "condition": null,
+          "runs_on": "ubuntu-latest",
+          "steps": [
+            {
+              "name": null,
+              "run": null,
+              "uses": "actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+              "condition": null
+            },
+            {
+              "name": "Verify repository policy",
+              "run": "python3 .github/oss-policy-check.py",
+              "uses": null,
+              "condition": null
+            },
+            {
+              "name": "Verify policy regression tests",
+              "run": "cd .github && python3 -m unittest discover -s policy-tests",
+              "uses": null,
+              "condition": null
+            },
+            {
+              "name": "Check policy types",
+              "run": "python3 -m venv \"$RUNNER_TEMP/policy-types\"\n\"$RUNNER_TEMP/policy-types/bin/pip\" install -r .github/policy/requirements.txt\n\"$RUNNER_TEMP/policy-types/bin/mypy\" --strict .github/policy .github/oss-policy-check.py .github/policy-tests\n",
+              "uses": null,
+              "condition": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": ".github/workflows/publish-crate.yml",
+      "jobs": [
+        {
+          "job": "prepare",
+          "condition": null,
+          "runs_on": "ubuntu-24.04",
+          "steps": [
+            {
+              "name": null,
+              "run": null,
+              "uses": "actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+              "condition": null
+            },
+            {
+              "name": "Isolate Cargo configuration",
+              "run": "echo \"CARGO_HOME=$RUNNER_TEMP/cargo-home\" >> \"$GITHUB_ENV\"",
+              "uses": null,
+              "condition": null
+            },
+            {
+              "name": "Require approved public source and release tag",
+              "run": "python3 .github/scripts/release-gate.py",
+              "uses": null,
+              "condition": null
+            },
+            {
+              "name": "Install pinned Rust toolchain",
+              "run": "rustup toolchain install 1.97.1 --profile minimal --component clippy",
+              "uses": null,
+              "condition": null
+            },
+            {
+              "name": "Test, lint and verify actual package without credentials",
+              "run": "cargo +1.97.1 test --locked\ncargo +1.97.1 clippy --locked --all-targets -- -D warnings\ncargo +1.97.1 package --locked\nmkdir -p \"$RUNNER_TEMP/package-release\"\ncp target/package/zixcel-mcp-gateway-0.1.1.crate \"$RUNNER_TEMP/package-release/\"\n",
+              "uses": null,
+              "condition": null
+            },
+            {
+              "name": "Inspect and bind archive",
+              "run": "python3 .github/scripts/check-crate-release.py prepare \"$RUNNER_TEMP/package-release\"",
+              "uses": null,
+              "condition": null
+            },
+            {
+              "name": null,
+              "run": null,
+              "uses": "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+              "condition": null
+            }
+          ]
+        },
+        {
+          "job": "publish",
+          "condition": "inputs.mode != 'prepare' && vars.REGISTRY_PUBLISH_ENABLED == 'true'",
+          "runs_on": "ubuntu-24.04",
+          "steps": [
+            {
+              "name": null,
+              "run": null,
+              "uses": "actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+              "condition": null
+            },
+            {
+              "name": "Isolate Cargo configuration",
+              "run": "echo \"CARGO_HOME=$RUNNER_TEMP/cargo-home\" >> \"$GITHUB_ENV\"",
+              "uses": null,
+              "condition": null
+            },
+            {
+              "name": "Recheck source, gates and registry state",
+              "run": "python3 .github/scripts/release-gate.py",
+              "uses": null,
+              "condition": null
+            },
+            {
+              "name": null,
+              "run": "rustup toolchain install 1.97.1 --profile minimal",
+              "uses": null,
+              "condition": null
+            },
+            {
+              "name": null,
+              "run": null,
+              "uses": "actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093",
+              "condition": null
+            },
+            {
+              "name": "Verify archive and native Cargo repack before authentication",
+              "run": "python3 .github/scripts/check-crate-release.py verify \"$RUNNER_TEMP/package-release\"\ncargo +1.97.1 publish --dry-run --locked --no-verify --registry crates-io\ncmp target/package/tmp-crate/zixcel-mcp-gateway-0.1.1.crate \"$RUNNER_TEMP/package-release/zixcel-mcp-gateway-0.1.1.crate\"\n",
+              "uses": null,
+              "condition": null
+            },
+            {
+              "name": "First publication with this repository's temporary token",
+              "run": "test -n \"$CARGO_REGISTRY_TOKEN\"\ncargo +1.97.1 publish --locked --no-verify --registry crates-io\n",
+              "uses": null,
+              "condition": "inputs.mode == 'bootstrap'"
+            },
+            {
+              "name": null,
+              "run": null,
+              "uses": "rust-lang/crates-io-auth-action@c6f97d42243bad5fab37ca0427f495c86d5b1a18",
+              "condition": "inputs.mode == 'oidc'"
+            },
+            {
+              "name": "Subsequent publication with repository OIDC identity",
+              "run": "cargo +1.97.1 publish --locked --no-verify --registry crates-io",
+              "uses": null,
+              "condition": "inputs.mode == 'oidc'"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": ".github/workflows/verify-crate.yml",
+      "jobs": [
+        {
+          "job": "verify",
+          "condition": null,
+          "runs_on": "ubuntu-24.04",
+          "steps": [
+            {
+              "name": null,
+              "run": null,
+              "uses": "actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+              "condition": null
+            },
+            {
+              "name": "Install pinned Rust toolchain",
+              "run": "rustup toolchain install 1.97.1 --profile minimal --component clippy,rustfmt",
+              "uses": null,
+              "condition": null
+            },
+            {
+              "name": "Test and lint all targets",
+              "run": "cargo +1.97.1 fmt --all --check\ncargo +1.97.1 test --locked --all-features\ncargo +1.97.1 clippy --locked --all-targets --all-features -- -D warnings\n",
+              "uses": null,
+              "condition": null
+            },
+            {
+              "name": "Build the actual crate archive",
+              "run": "cargo +1.97.1 package --locked",
+              "uses": null,
+              "condition": null
+            },
+            {
+              "name": "Retain reviewed crate",
+              "run": null,
+              "uses": "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+              "condition": null
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "evidence_policy": "Declarations and source paths are not proof of an executed acceptance. Exact CI head and result are recorded separately. No live accounts or production acceptance is inferred."
+}
