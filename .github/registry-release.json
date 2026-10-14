@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "repository": "zixcel/zixcel-mcp-gateway",
+  "defaultBranch": "main",
+  "requiredWorkflows": [
+    "oss-policy.yml",
+    "verify-crate.yml"
+  ],
+  "packages": [
+    {
+      "ecosystem": "cargo",
+      "manifest": "Cargo.toml",
+      "name": "zixcel-mcp-gateway",
+      "installDirectory": "."
+    }
+  ]
+}
