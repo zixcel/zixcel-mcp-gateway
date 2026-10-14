@@ -13,7 +13,7 @@ include = ["src/**", "tests/**", "examples/local.toml", "schema/public-catalog.s
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = { version = "1.0.151", features = ["raw_value"] }
 bigdecimal = "=0.4.11"
-toml = "0.8.23"
+toml = "1.1.8"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
