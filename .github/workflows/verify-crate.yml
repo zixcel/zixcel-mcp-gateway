@@ -13,6 +13,8 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           persist-credentials: false
+      - name: Resolve archive names from current package manifests
+        run: python3 "$GITHUB_WORKSPACE/.github/scripts/archive_names.py"
       - name: Install pinned Rust toolchain
         run: rustup toolchain install 1.97.1 --profile minimal --component clippy,rustfmt
       - name: Test and lint all targets
@@ -26,6 +28,6 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: reviewed-crate
-          path: target/package/zixcel-mcp-gateway-0.1.1.crate
+          path: target/package/${PACKAGE_ARCHIVE_ZIXCEL_MCP_GATEWAY_CARGO}
           if-no-files-found: error
           retention-days: 7
