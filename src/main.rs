@@ -19,6 +19,13 @@ fn main() {
 }
 
 fn run() -> Result<(), String> {
+    #[cfg(feature = "http")]
+    if std::env::args_os()
+        .nth(1)
+        .is_some_and(|arg| arg == "serve-http")
+    {
+        return run_http_cli();
+    }
     let (mode, path) = parse_args()?;
     let config = Config::load(&path)?;
     if matches!(mode, Mode::Validate) {
@@ -52,6 +59,10 @@ fn parse_args() -> Result<(Mode, PathBuf), String> {
     };
     if flag == "--help" {
         println!("usage: zixcel-mcp-gateway [validate-config] --config <FILE>");
+        #[cfg(feature = "http")]
+        println!(
+            "       zixcel-mcp-gateway serve-http --config <FILE> --listen <LOOPBACK_IP:PORT> --public-origin <HTTPS_ORIGIN> [--allow-origin <HTTPS_ORIGIN>]"
+        );
         std::process::exit(0);
     }
     if flag == "--version" {
@@ -77,4 +88,48 @@ fn parse_args() -> Result<(Mode, PathBuf), String> {
         return Err("unexpected extra argument".into());
     }
     Ok((mode, path))
+}
+
+#[cfg(feature = "http")]
+fn run_http_cli() -> Result<(), String> {
+    use zixcel_mcp_gateway::http::{HttpOptions, run_http};
+    let args = std::env::args().skip(2).collect::<Vec<_>>();
+    let mut file = None;
+    let mut listen = None;
+    let mut origin = None;
+    let mut browser_origins = Vec::new();
+    let mut pairs = args.chunks_exact(2);
+    for pair in &mut pairs {
+        match pair[0].as_str() {
+            "--config" if file.is_none() => file = Some(PathBuf::from(&pair[1])),
+            "--listen" if listen.is_none() => {
+                listen = Some(
+                    pair[1]
+                        .parse::<std::net::SocketAddr>()
+                        .map_err(|_| "An explicit loopback IP:port is required")?,
+                );
+            }
+            "--public-origin" if origin.is_none() => origin = Some(pair[1].clone()),
+            "--allow-origin" if browser_origins.len() < 7 => browser_origins.push(pair[1].clone()),
+            _ => return Err("Unknown or duplicate HTTP option".into()),
+        }
+    }
+    if !pairs.remainder().is_empty() {
+        return Err("HTTP options require values".into());
+    }
+    let config = Config::load(&file.ok_or("--config is required")?)?;
+    let address = listen.ok_or("--listen is required")?;
+    if !address.ip().is_loopback() {
+        return Err("HTTP listener must be loopback".into());
+    }
+    let mut options = HttpOptions::new(&origin.ok_or("--public-origin is required")?)?;
+    for allowed in browser_origins {
+        options = options.allow_browser_origin(&allowed)?;
+    }
+    tokio::runtime::Builder::new_current_thread().enable_all().build()
+        .map_err(|_| "HTTP runtime unavailable")?.block_on(async {
+            let listener = tokio::net::TcpListener::bind(address).await.map_err(|_| "Loopback socket unavailable")?;
+            eprintln!("{}", serde_json::json!({"event":"listening", "address":listener.local_addr().map_err(|_| "Loopback socket unavailable")?.to_string(), "path":"/mcp", "external_actions":false}));
+            run_http(Gateway::new(config), listener, options, async { let _ = tokio::signal::ctrl_c().await; }).await
+        })
 }
