@@ -2,6 +2,8 @@
 
 mod config;
 mod file_input;
+#[cfg(feature = "http")]
+pub mod http;
 mod protocol;
 mod server;
 mod transport;

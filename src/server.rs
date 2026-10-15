@@ -54,11 +54,13 @@ pub fn tools_list(params: Option<&RawValue>) -> RpcResult {
         {
             "name":"zixcel_public_catalog",
             "description":"Return the configured read-only public resource catalog.",
+            "annotations":{"readOnlyHint":true,"destructiveHint":false,"idempotentHint":true,"openWorldHint":false},
             "inputSchema":{"type":"object","additionalProperties":false}
         },
         {
             "name":"zixcel_public_resource",
             "description":"Return one configured public resource.",
+            "annotations":{"readOnlyHint":true,"destructiveHint":false,"idempotentHint":true,"openWorldHint":false},
             "inputSchema":{
                 "type":"object",
                 "properties":{"resource":{"type":"string","pattern":"^[a-z][a-z0-9-]{0,62}$"}},

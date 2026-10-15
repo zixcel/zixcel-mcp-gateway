@@ -60,3 +60,11 @@ the approved package source.
 
 Dependency updates: [repository policy](docs/dependency-updates.md).
 Registry releases: [version tags and GitHub OIDC](docs/registry-release.md).
+
+## Optional public HTTP adapter
+
+The default build remains offline stdio. The `http` feature adds a bounded,
+stateless loopback HTTP adapter over the same public catalog and RPC validation.
+See [HTTP configuration and acceptance](docs/http.md). TLS exposure and ChatGPT
+connection are separate deployment steps; no private/write tools or account
+credentials are added.

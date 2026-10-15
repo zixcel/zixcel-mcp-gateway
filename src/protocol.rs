@@ -39,6 +39,13 @@ pub struct Gateway {
     config: Config,
 }
 
+#[cfg(feature = "http")]
+pub(crate) fn http_method(line: &str) -> Result<String, ()> {
+    serde_json::from_str::<Request>(line)
+        .map(|request| request.method)
+        .map_err(|_| ())
+}
+
 impl Gateway {
     #[must_use]
     pub const fn new(config: Config) -> Self {
