@@ -1,4 +1,6 @@
 [package]
+categories = ["network-programming", "development-tools"]
+keywords = ["mcp", "mcp-server", "ai-agents", "llm", "json-rpc"]
 name = "zixcel-mcp-gateway"
 version = "0.1.2"
 edition = "2024"
