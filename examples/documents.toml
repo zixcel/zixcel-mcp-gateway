@@ -1,0 +1,18 @@
+schema_version = 2
+[server]
+id = "example-documents"
+title = "Public documents"
+instructions = "Read the selected public document; this provides no operational grants."
+[[resource]]
+id = "guidance"
+title = "Public guidance"
+summary = "An explicitly selected public document."
+capabilities = ["read-public-document"]
+[resource.document]
+classification = "public"
+media_type = "text/markdown"
+source_url = "https://example.org/guidance/revision-1"
+license = "Apache-2.0"
+attribution = "Zixcel"
+sha256 = "ca2723da792d787fc285fcefd563298486fae9b71557def78693832a75ea079b"
+text = "# Public guidance\nAuthorization and secret handling are separate responsibilities.\n"

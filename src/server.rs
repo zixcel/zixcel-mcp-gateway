@@ -96,7 +96,7 @@ pub fn resources_list(config: &Config, params: Option<&RawValue>) -> RpcResult {
             "uri":format!("zixcel://public/{}", resource.id.as_str()),
             "name":resource.title,
             "description":resource.summary,
-            "mimeType":"application/json"
+            "mimeType":resource.document.as_ref().map_or("application/json", |document| document.media_type.as_str())
         })
     });
     Ok(json!({"resources":resources.collect::<Vec<_>>()}))
@@ -108,6 +108,14 @@ pub fn resources_read(config: &Config, params: Option<&RawValue>) -> RpcResult {
         return Err((-32602, "Only approved zixcel public resources are readable"));
     };
     let resource = find_resource(config, slug)?;
+    if let Some(document) = &resource.document {
+        return Ok(
+            json!({"contents":[{"uri":read.uri,"mimeType":document.media_type,
+            "text":document.text,"_meta":{"zixcel/source":document.source_url,
+            "zixcel/sha256":document.sha256,"zixcel/license":document.license,
+            "zixcel/attribution":document.attribution,"zixcel/classification":document.classification}}]}),
+        );
+    }
     let text = serde_json::to_string(resource).map_err(internal)?;
     Ok(json!({"contents":[{"uri":read.uri,"mimeType":"application/json","text":text}]}))
 }

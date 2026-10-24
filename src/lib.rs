@@ -1,6 +1,7 @@
 //! Offline, read-only MCP projection of approved public service metadata.
 
 mod config;
+mod document;
 mod file_input;
 #[cfg(feature = "http")]
 pub mod http;
