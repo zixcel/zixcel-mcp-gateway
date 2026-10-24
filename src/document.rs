@@ -1,4 +1,5 @@
 //! Explicit public text, never a path/URL fetcher or a credential store.
+use crate::config_lexical::validate_text;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
@@ -16,7 +17,7 @@ pub struct PublicDocument {
     pub text: String,
 }
 impl PublicDocument {
-    pub fn validate(&self) -> Result<(), String> {
+    pub(crate) fn validate(&self) -> Result<(), String> {
         if self.classification != "public"
             || !matches!(self.media_type.as_str(), "text/plain" | "text/markdown")
             || self.text.trim().is_empty()
@@ -32,14 +33,11 @@ impl PublicDocument {
                 .bytes()
                 .any(|c| c.is_ascii_whitespace() || matches!(c, b'@' | b'?' | b'#'))
             || self.sha256 != hex::encode(Sha256::digest(self.text.as_bytes()))
-            || !public_label(&self.license)
-            || !public_label(&self.attribution)
         {
             return Err("invalid or unverified public document".into());
         }
+        validate_text(&self.license, 160)?;
+        validate_text(&self.attribution, 160)?;
         Ok(())
     }
-}
-fn public_label(text: &str) -> bool {
-    !text.trim().is_empty() && text.len() <= 160 && !text.chars().any(char::is_control)
 }
