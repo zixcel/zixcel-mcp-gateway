@@ -2,7 +2,7 @@ mod support;
 use serde_json::{Value, json};
 use zixcel_mcp_gateway::{Config, Gateway};
 const SOURCE: &str = include_str!("../examples/documents.toml");
-fn response(gateway: &Gateway, method: &str, params: Value) -> Value {
+fn response(gateway: &Gateway, method: &str, params: &Value) -> Value {
     serde_json::from_str(
         &gateway
             .handle_line(
@@ -18,7 +18,7 @@ fn full_public_text_retains_exact_bytes_digest_media_and_attribution() {
     let out = response(
         &gateway,
         "resources/read",
-        json!({"uri":"zixcel://public/guidance"}),
+        &json!({"uri":"zixcel://public/guidance"}),
     );
     let document = &out["result"]["contents"][0];
     assert_eq!(document["mimeType"], "text/markdown");
@@ -28,7 +28,7 @@ fn full_public_text_retains_exact_bytes_digest_media_and_attribution() {
     );
     assert_eq!(document["_meta"]["zixcel/license"], "Apache-2.0");
     assert_eq!(document["_meta"]["zixcel/attribution"], "Zixcel");
-    let listed = response(&gateway, "resources/list", json!({}));
+    let listed = response(&gateway, "resources/list", &json!({}));
     assert_eq!(
         listed["result"]["resources"][0]["mimeType"],
         "text/markdown"
@@ -36,7 +36,7 @@ fn full_public_text_retains_exact_bytes_digest_media_and_attribution() {
     let catalog = response(
         &gateway,
         "tools/call",
-        json!({"name":"zixcel_public_catalog","arguments":{}}),
+        &json!({"name":"zixcel_public_catalog","arguments":{}}),
     );
     let text = catalog["result"]["content"][0]["text"].as_str().unwrap();
     assert!(!text.contains("Authorization and secret handling"));
@@ -73,7 +73,7 @@ fn document_limits_apply_before_parsing_and_unknown_uris_never_fetch() {
         "zixcel://public/missing",
     ] {
         assert_eq!(
-            response(&gateway, "resources/read", json!({"uri":uri}))["error"]["code"],
+            response(&gateway, "resources/read", &json!({"uri":uri}))["error"]["code"],
             -32602
         );
     }
@@ -111,7 +111,7 @@ fn real_stdio_returns_complete_document_and_leaves_legacy_metadata_available() {
         response(
             &legacy,
             "resources/read",
-            json!({"uri":"zixcel://public/example-service"})
+            &json!({"uri":"zixcel://public/example-service"})
         )["result"]["contents"][0]["mimeType"],
         "application/json"
     );

@@ -11,7 +11,7 @@ pub(crate) fn validate(config: &Config) -> Result<(), String> {
     validate_text(&config.server.title, 80)?;
     validate_text(&config.server.instructions, 500)?;
     if config.schema_version == 2
-        && (has_sensitive_marker(&config.server.id.0)
+        && (has_sensitive_marker(config.server.id.as_str())
             || has_sensitive_marker(&config.server.title)
             || has_sensitive_marker(&config.server.instructions))
     {
