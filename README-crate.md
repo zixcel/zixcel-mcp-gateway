@@ -49,3 +49,8 @@ stateless loopback HTTP adapter over the same public catalog and RPC validation.
 See [HTTP configuration and acceptance](docs/http.md). TLS exposure and ChatGPT
 connection are separate deployment steps; no private/write tools or account
 credentials are added.
+
+## Public document resources
+
+[Catalog v2 public documents](docs/documents.md) provide bounded, digest-checked
+full text through standard resource reads. Catalog v1 stays metadata-only.

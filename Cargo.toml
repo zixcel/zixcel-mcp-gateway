@@ -2,16 +2,18 @@
 categories = ["network-programming", "development-tools"]
 keywords = ["mcp", "mcp-server", "ai-agents", "llm", "json-rpc"]
 name = "zixcel-mcp-gateway"
-version = "0.1.2"
+version = "0.2.0"
 edition = "2024"
 license = "Apache-2.0"
 description = "Product-neutral read-only MCP runtime for approved public metadata"
 publish = ["crates-io"]
 repository = "https://github.com/zixcel/zixcel-mcp-gateway"
 readme = "README-crate.md"
-include = ["src/**", "tests/**", "examples/local.toml", "schema/public-catalog.schema.json", "docs/rust.md", "docs/http.md", "README-crate.md", "Cargo.toml", "Cargo.lock", "LICENSE", "LICENSE-MIT", "NOTICE"]
+include = ["src/**", "tests/**", "examples/local.toml", "examples/documents.toml", "docs/documents.md", "schema/public-catalog.schema.json", "docs/rust.md", "docs/http.md", "README-crate.md", "Cargo.toml", "Cargo.lock", "LICENSE", "LICENSE-MIT", "NOTICE"]
 
 [dependencies]
+sha2 = "0.11.1"
+hex = "0.4.3"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = { version = "1.0.151", features = ["raw_value"] }
 bigdecimal = "=0.4.11"
