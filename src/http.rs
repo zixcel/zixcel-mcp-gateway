@@ -156,9 +156,31 @@ async fn endpoint(State(state): State<Arc<Endpoint>>, request: Request<Body>) ->
     result
 }
 
+fn discovery(request: &Request<Body>, state: &Endpoint) -> Response {
+    if !matches!(*request.method(), Method::GET | Method::HEAD) {
+        let mut result = rejected(StatusCode::METHOD_NOT_ALLOWED);
+        result
+            .headers_mut()
+            .insert("allow", HeaderValue::from_static("GET, HEAD"));
+        return result;
+    }
+    let card = state
+        .gateway
+        .server_card(&format!("https://{}/mcp", state.options.authority));
+    let body = if request.method() == Method::HEAD {
+        String::new()
+    } else {
+        card.to_string()
+    };
+    response(StatusCode::OK, &body, "application/json")
+}
+
 async fn handle(request: Request<Body>, state: &Endpoint) -> Response {
     if request.uri().query().is_some() {
         return rejected(StatusCode::BAD_REQUEST);
+    }
+    if request.uri().path() == "/.well-known/mcp/server-card.json" {
+        return discovery(&request, state);
     }
     if request.method() == Method::OPTIONS {
         let allowed_headers = ["content-type", "accept", "mcp-protocol-version"];
@@ -343,7 +365,10 @@ pub async fn run_http(
         options,
         local_authority: address.to_string(),
     });
-    let app = Router::new().route("/mcp", any(endpoint)).with_state(state);
+    let app = Router::new()
+        .route("/mcp", any(endpoint))
+        .route("/.well-known/mcp/server-card.json", any(endpoint))
+        .with_state(state);
     let listener = BoundedListener {
         socket: listener,
         slots: Arc::new(Semaphore::new(CONNECTIONS)),
