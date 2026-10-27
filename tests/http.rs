@@ -53,6 +53,64 @@ fn body(response: &str) -> &str {
 }
 
 #[tokio::test]
+async fn discovery_matches_initialization_and_cannot_advertise_unconfigured_private_tools() {
+    let (address, stop, task) = server().await;
+    let card_request = format!(
+        "GET /.well-known/mcp/server-card.json HTTP/1.1\r\nHost: {address}\r\nConnection: close\r\n\r\n"
+    );
+    let response = exchange(address, &card_request).await;
+    assert!(response.starts_with("HTTP/1.1 200"));
+    let card: serde_json::Value = serde_json::from_str(body(&response)).unwrap();
+    let initialized: serde_json::Value =
+        serde_json::from_str(&gateway().handle_line(INIT).unwrap()).unwrap();
+    assert_eq!(card["serverInfo"], initialized["result"]["serverInfo"]);
+    assert_eq!(card["capabilities"], initialized["result"]["capabilities"]);
+    assert_eq!(
+        card["protocolVersion"],
+        initialized["result"]["protocolVersion"]
+    );
+    assert_eq!(
+        card["transport"]["endpoint"],
+        "https://catalog.example.org/mcp"
+    );
+    assert_eq!(card["authentication"]["required"], false);
+    assert!(card.get("prompts").is_none());
+    assert_eq!(
+        body(&exchange(address, &card_request.replacen("GET ", "HEAD ", 1)).await),
+        ""
+    );
+    assert!(
+        exchange(address, &card_request.replacen("GET ", "POST ", 1))
+            .await
+            .starts_with("HTTP/1.1 405")
+    );
+    assert!(
+        exchange(
+            address,
+            &card_request.replace(
+                "Connection: close",
+                "Connection: close\r\nOrigin: https://untrusted.example"
+            )
+        )
+        .await
+        .starts_with("HTTP/1.1 403")
+    );
+    assert!(
+        exchange(
+            address,
+            &card_request.replace(
+                "Connection: close",
+                "Connection: close\r\nAuthorization: Bearer never-issued"
+            )
+        )
+        .await
+        .starts_with("HTTP/1.1 400")
+    );
+    stop.send(()).unwrap();
+    task.await.unwrap();
+}
+
+#[tokio::test]
 async fn initialization_lists_calls_and_reads_have_the_identical_stdio_semantics() {
     let (address, stop, task) = server().await;
     let requests = [

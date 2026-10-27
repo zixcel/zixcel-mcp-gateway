@@ -45,6 +45,27 @@ its capacity. This is a bounded local adapter, not a claim that the public TLS
 edge or a hostile network has been accepted. Validate the reverse proxy and its
 resource/recovery policy before exposure.
 
+## Agent Readiness discovery
+
+GET and HEAD `/.well-known/mcp/server-card.json` expose a SEP-1649 discovery
+profile using the same server identity and capabilities as initialization.
+The endpoint is derived only from the configured canonical public origin;
+untrusted Host and forwarded headers cannot rewrite it. This is a discovery
+profile, not a claim of supporting newer MCP protocol revisions. The negotiated
+revision remains `2025-06-18`. The card applies the same origin, credential,
+query and connection limits as `/mcp`, and does not expose catalog contents.
+
+A Nuxt consumer can advertise this card once the operator has accepted its
+actual public HTTPS endpoint, initialize and tools/list. A loopback test or a
+static card alone does not establish a working remote service. The Rust binary
+needs an appropriate host behind the HTTPS boundary; the Nuxt static asset
+Worker does not execute it. Public read-only metadata needs no OAuth. Do not
+publish synthetic OAuth, A2A, WebMCP or commerce descriptors to improve a score.
+
+Cloudflare's checks are described at [Agent Readiness](https://isitagentready.com/)
+and its [scanner information](https://web-bot-auth.chambers.cfdata.org/).
+MCP Server Card shape follows [SEP-1649](https://github.com/modelcontextprotocol/modelcontextprotocol/issues/1649).
+
 ## Verification
 
 `cargo test --locked --all-features` covers the shared RPC semantics, exact large

@@ -39,13 +39,27 @@ pub fn initialize(config: &Config, params: Option<&RawValue>) -> RpcResult {
     Ok(json!({
         "protocolVersion":"2025-06-18",
         "capabilities":{"tools":{},"resources":{}},
-        "serverInfo":{
-            "name":config.server.id.as_str(),
-            "title":config.server.title,
-            "version":env!("CARGO_PKG_VERSION")
-        },
+        "serverInfo":server_info(config),
         "instructions":config.server.instructions
     }))
+}
+
+fn server_info(config: &Config) -> Value {
+    json!({"name":config.server.id.as_str(), "title":config.server.title, "version":env!("CARGO_PKG_VERSION")})
+}
+
+// SEP-1649 discovery profile, not a claim of a newer negotiated MCP revision.
+#[cfg(feature = "http")]
+pub(crate) fn server_card(config: &Config, endpoint: &str) -> Value {
+    json!({
+        "version":"1.0",
+        "protocolVersion":"2025-06-18",
+        "serverInfo":server_info(config),
+        "description":config.server.instructions,
+        "transport":{"type":"streamable-http","endpoint":endpoint},
+        "capabilities":{"tools":{},"resources":{}},
+        "authentication":{"required":false}
+    })
 }
 
 pub fn tools_list(params: Option<&RawValue>) -> RpcResult {
